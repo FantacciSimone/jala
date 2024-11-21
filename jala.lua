@@ -22,6 +22,7 @@ MusicUtil = require "musicutil"
 
 options = {}
 options.OUTPUT = {"audio", "midi", "audio + midi"}
+options.II = {"off", "JF", "JF + Crow", "JF + Crow 1/2", "JF + Crow 2/3", "JF + Crow", "Crow" }
 
 --options.OUTPUT = {"audio", "midi", "audio + midi", "mx"}
 --mxsamples=include("mx.samples/lib/mx.samples")
@@ -61,6 +62,7 @@ edit_note = 1
 
 opt_items = {
   {id = "output", label = "output", value = function() return options.OUTPUT[params:get("output")] end},
+  {id = "ii", label = "ii", value = function() return options.II[params:get("ii")] end},
   {id = "clock_tempo", label = "bpm", value = function() return params:get("clock_tempo") end},
   {id = "midi_out", label = "midi out", value = function() return mdevs[params:get("midi_out")] end},
   {id = "midi_device", label = "midi in", value = function() return mdevs[params:get("midi_device")] end},
@@ -125,6 +127,18 @@ function actualStep()
                 params:get("velocity_max"))
     midi_out:note_on(note_num, velocity, params:get("midi_out_channel"))
   end
+  -- i2i
+  if (params:get("ii") >= 2 and params:get("ii") <= 6) then
+	crow.ii.jf.play_note((note_num-60)/12,5)
+  end
+  if (params:get("ii") == 3 or params:get("ii") == 4 or params:get("ii") == 6 or params:get("ii") == 7) then
+	crow.output[1].volts = (note_num-60)/12
+    crow.output[2].execute()
+  end
+  if (params:get("ii") == 3 or params:get("ii") == 5 or params:get("ii") == 6 or params:get("ii") == 7) then
+	crow.output[3].volts = (note_num-60)/12
+    crow.output[4].execute()
+  end
 end
 
 function step()
@@ -173,6 +187,11 @@ function init()
       all_notes_off()
     end}
   
+  params:add{type = "option", id = "ii", name = "ii", default = 1,
+    options = options.II,
+    action = function(value)
+      -- all_notes_off()
+    end}
   
   params:add{type = "number", id = "step_div", name = "step division", min = 1, max = 16, default = 1}
 
@@ -232,6 +251,10 @@ function init()
 
   midi_device = midi.connect(devicepos)
   midi_out = midi.connect(deviceposOut)
+
+  crow.ii.pullup(true)
+  crow.ii.jf.mode(1)
+
 
   -- Render Style
   screen.level(15)
